@@ -3,3 +3,10 @@ PRD.md
 
 # Ignore GitHub Copilot prompts
 .github/prompts/
+
+# Maven build output
+target/
+
+# IDE files
+.idea/
+*.iml
