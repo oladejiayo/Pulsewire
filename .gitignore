@@ -1,2 +1,5 @@
 # Ignore local product requirements document
 PRD.md
+
+# Ignore GitHub Copilot prompts
+.github/prompts/

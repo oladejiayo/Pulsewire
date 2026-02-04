@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: pulsewire-data-plane
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+pulsewire:
+  backbone:
+    type: inmemory  # Options: inmemory, kafka
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: pulsewire-data-plane
+  normalizer:
+    schema-version: 1
+
+logging:
+  level:
+    root: INFO
+    com.pulsewire: DEBUG
+
+---
+# Kafka profile (for use with Docker infrastructure)
+spring:
+  config:
+    activate:
+      on-profile: kafka
+
+pulsewire:
+  backbone:
+    type: kafka
+  kafka:
+    bootstrap-servers: localhost:9092
+
+---
+# Docker profile (for running inside Docker)
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+pulsewire:
+  backbone:
+    type: kafka
+  kafka:
+    bootstrap-servers: kafka:29092
