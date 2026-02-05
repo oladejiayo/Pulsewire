@@ -1,0 +1,3 @@
+# SPI provider for FeedAdapter implementations
+# Add your adapter class name here to enable ServiceLoader discovery
+com.pulsewire.dataplane.adapter.spi.SyntheticFeedAdapterV2
