@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #213547;
+  background-color: #f8fafc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Price change animations */
+@keyframes flash-green {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(34, 197, 94, 0.3); }
+}
+
+@keyframes flash-red {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(239, 68, 68, 0.3); }
+}
+
+.price-up {
+  animation: flash-green 0.5s ease-in-out;
+}
+
+.price-down {
+  animation: flash-red 0.5s ease-in-out;
+}

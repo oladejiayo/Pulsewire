@@ -16,6 +16,7 @@ It is designed to demonstrate:
 - `pulsewire-core` — Core domain models (`MarketEvent`, `Trade`, `Quote`), backbone abstractions (`BackbonePublisher`, `BackboneConsumer`), and implementations (in-memory, Kafka).
 - `pulsewire-control-plane` — Spring Boot control plane service with REST APIs for instruments, feeds, subscriptions, and PostgreSQL persistence.
 - `pulsewire-data-plane` — Data-plane service: feed adapters, normalizer, and WebSocket gateway for streaming market data.
+- `pulsewire-frontend` — React + TypeScript admin dashboard with real-time market data visualization.
 - `docker-compose.yml` — Compose file to run all services with Kafka and PostgreSQL.
 - `docs/` — Architecture and documentation.
 - `user-stories/` — Epics and implementation user stories derived from the PRD.
@@ -24,6 +25,7 @@ It is designed to demonstrate:
 
 - Java 21
 - Maven 3.8+ installed locally (`mvn` on your PATH)
+- Node.js 18+ (for frontend development)
 - Docker (for running with Kafka/PostgreSQL)
 
 ## Quick Start (PowerShell)
@@ -45,14 +47,23 @@ The easiest way to run PulseWire is with the included startup script:
 
 # Clean build
 .\start-pulsewire.ps1 -Clean
+
+# Skip frontend (backend only)
+.\start-pulsewire.ps1 -NoFrontend
 ```
 
 The script will:
-1. Check prerequisites (Java, Maven, Docker)
+1. Check prerequisites (Java, Maven, Node.js, Docker)
 2. Build the project
 3. Start infrastructure (if using full mode)
-4. Launch Control Plane and Data Plane services
+4. Launch Control Plane, Data Plane, and Frontend services
 5. Display endpoints when ready
+
+**Endpoints after startup:**
+- Frontend Dashboard: http://localhost:3000
+- Control Plane API: http://localhost:8080
+- Data Plane: http://localhost:8081
+- WebSocket: ws://localhost:8081/ws/market-data
 
 ## Build and run locally (in-memory backbone)
 
@@ -114,3 +125,22 @@ docker compose down -v
 mvn test
 ```
 
+## Frontend Development
+
+The frontend is a React + TypeScript application built with Vite.
+
+```bash
+cd pulsewire-frontend
+npm install
+npm run dev
+```
+
+Features:
+- **Dashboard** — Real-time market data visualization with WebSocket streaming
+- **Instruments** — CRUD management for tradeable instruments
+- **Feeds** — Configure market data feed sources
+- **Subscriptions** — Link instruments to feeds with priority settings
+
+The frontend proxies API requests to the backend services:
+- `/api/*` → Control Plane (http://localhost:8080)
+- `/ws/*` → Data Plane WebSocket (ws://localhost:8081)

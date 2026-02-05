@@ -6,6 +6,7 @@
     - Infrastructure (PostgreSQL, Kafka via Docker Compose)
     - Control Plane API
     - Data Plane (Feed Adapters, Normalizer, WebSocket Gateway)
+    - Frontend (React admin dashboard)
 .PARAMETER Mode
     Startup mode: 'full' (default), 'local', 'infra-only', 'build-only'
     - full: Start Docker infrastructure + all services
@@ -16,17 +17,21 @@
     Skip Maven build step
 .PARAMETER Clean
     Perform clean build
+.PARAMETER NoFrontend
+    Skip starting the frontend dev server
 .EXAMPLE
     .\start-pulsewire.ps1
     .\start-pulsewire.ps1 -Mode local
     .\start-pulsewire.ps1 -Mode full -Clean
+    .\start-pulsewire.ps1 -NoFrontend
 #>
 
 param(
     [ValidateSet('full', 'local', 'infra-only', 'build-only')]
     [string]$Mode = 'local',
     [switch]$SkipBuild,
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$NoFrontend
 )
 
 $ErrorActionPreference = "Stop"
@@ -98,6 +103,29 @@ if ($Mode -in @('full', 'infra-only')) {
     } else {
         $dockerVersionOutput = & docker --version 2>&1
         Write-Success "Docker found: $dockerVersionOutput"
+    }
+}
+
+# Check Node.js (for frontend)
+$nodeAvailable = $false
+if (-not $NoFrontend) {
+    $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+    if ($null -eq $nodeCmd) {
+        Write-Info "Node.js not found. Frontend will not be started. Install Node.js 18+ or use -NoFrontend flag."
+    } else {
+        $nodeVersionOutput = & node --version 2>&1
+        Write-Success "Node.js found: $nodeVersionOutput"
+        $nodeAvailable = $true
+        
+        # Check if frontend dependencies are installed
+        $frontendPath = Join-Path $ProjectRoot "pulsewire-frontend"
+        $nodeModulesPath = Join-Path $frontendPath "node_modules"
+        if (-not (Test-Path $nodeModulesPath)) {
+            Write-Info "Installing frontend dependencies..."
+            Push-Location $frontendPath
+            npm install
+            Pop-Location
+        }
     }
 }
 
@@ -263,6 +291,38 @@ if ($attempt -ge $maxAttempts) {
     exit 1
 }
 
+# Start Frontend (if Node.js available)
+$frontendJob = $null
+if ($nodeAvailable -and -not $NoFrontend) {
+    Write-Info "Starting Frontend dev server..."
+    $frontendJob = Start-Job -ScriptBlock {
+        param($root)
+        Set-Location (Join-Path $root "pulsewire-frontend")
+        npm run dev 2>&1
+    } -ArgumentList $ProjectRoot
+    
+    # Wait for Frontend to start
+    Write-Info "Waiting for Frontend to start..."
+    $attempt = 0
+    do {
+        Start-Sleep -Seconds 2
+        $attempt++
+        try {
+            $response = Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+            if ($response.StatusCode -eq 200) {
+                Write-Success "Frontend is ready at http://localhost:3000"
+                break
+            }
+        } catch {
+            Write-Info "Waiting for Frontend... ($attempt/$maxAttempts)"
+        }
+    } while ($attempt -lt $maxAttempts)
+    
+    if ($attempt -ge $maxAttempts) {
+        Write-Info "Frontend may still be starting. Check http://localhost:3000"
+    }
+}
+
 # Final summary
 Write-Header "PulseWire Started Successfully!"
 Write-Host ""
@@ -270,6 +330,9 @@ Write-Host "  Services:" -ForegroundColor White
 Write-Host "    Control Plane API:    http://localhost:8080" -ForegroundColor Green
 Write-Host "    Data Plane:           http://localhost:8081" -ForegroundColor Green
 Write-Host "    WebSocket Gateway:    ws://localhost:8081/ws/market-data" -ForegroundColor Green
+if ($nodeAvailable -and -not $NoFrontend) {
+    Write-Host "    Frontend Dashboard:   http://localhost:3000" -ForegroundColor Green
+}
 
 if ($Mode -eq 'full') {
     Write-Host ""
@@ -304,6 +367,11 @@ try {
             Receive-Job -Job $dataPlaneJob
             break
         }
+        if ($frontendJob -and $frontendJob.State -eq 'Failed') {
+            Write-Error "Frontend crashed:"
+            Receive-Job -Job $frontendJob
+            break
+        }
         Start-Sleep -Seconds 5
     }
 } finally {
@@ -314,6 +382,11 @@ try {
     Stop-Job -Job $dataPlaneJob -ErrorAction SilentlyContinue
     Remove-Job -Job $controlPlaneJob -Force -ErrorAction SilentlyContinue
     Remove-Job -Job $dataPlaneJob -Force -ErrorAction SilentlyContinue
+    
+    if ($frontendJob) {
+        Stop-Job -Job $frontendJob -ErrorAction SilentlyContinue
+        Remove-Job -Job $frontendJob -Force -ErrorAction SilentlyContinue
+    }
     
     if ($Mode -eq 'full') {
         Write-Info "Stopping Docker containers..."
