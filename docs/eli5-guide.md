@@ -265,6 +265,181 @@ flowchart TB
 
 ---
 
+### ✅ US01-02: Synthetic Exchange Feed Adapter
+
+**📅 Implemented:** February 2026  
+**📁 Location:** `pulsewire-data-plane/src/main/java/com/pulsewire/dataplane/adapter/synthetic/`
+
+#### What Did We Build?
+
+We built a **fake stock exchange** that generates realistic market data for testing.
+
+#### Why Do We Need This?
+
+Imagine you're building an app that shows stock prices. But:
+
+```mermaid
+flowchart LR
+    subgraph Problem["❌ The Problem"]
+        Real["🏛️ Real Exchange<br/>(NYSE, NASDAQ)"]
+        Cost["💰 Costs money"]
+        Network["🌐 Needs internet"]
+        Complex["🔧 Complex setup"]
+    end
+    
+    subgraph Solution["✅ The Solution"]
+        Fake["🎭 Fake Exchange<br/>(Our Synthetic Adapter)"]
+        Free["🆓 Free!"]
+        Offline["💻 Works offline"]
+        Simple["👍 Just works"]
+    end
+    
+    style Problem fill:#ffebee
+    style Solution fill:#e8f5e9
+```
+
+**Real-world analogy**: It's like a flight simulator for pilots. They don't need to fly a real plane to practice — they use a simulator that acts like one!
+
+#### The Parts We Created
+
+| File | What It Is | Simple Explanation |
+|------|-----------|-------------------|
+| `SyntheticFeedConfig.java` | Settings | "How fast? Which stocks? Enable burst mode?" |
+| `SyntheticExchangeAdapter.java` | The fake exchange | Generates fake prices automatically |
+| `SyntheticTrade.java` | A trade message | "100 shares of AAPL sold at $185.50" |
+| `SyntheticQuote.java` | A quote message | "AAPL: Buy at $185.48, Sell at $185.52" |
+| `TradeSide.java` | Buy or Sell | Who started the trade? |
+
+#### Trade vs Quote: What's the Difference?
+
+```mermaid
+flowchart TB
+    subgraph Quote["📊 QUOTE = 'What's available?'"]
+        direction LR
+        Bid["🟢 BID<br/>$185.48<br/>100 shares<br/><i>Someone wants to BUY</i>"]
+        Ask["🔴 ASK<br/>$185.52<br/>200 shares<br/><i>Someone wants to SELL</i>"]
+    end
+    
+    subgraph Trade["💰 TRADE = 'A deal happened!'"]
+        Deal["AAPL<br/>150 shares @ $185.50<br/>Buyer hit the ask!"]
+    end
+    
+    Quote -->|"When buyer agrees<br/>to seller's price"| Trade
+    
+    style Quote fill:#e3f2fd
+    style Trade fill:#e8f5e9
+    style Bid fill:#c8e6c9
+    style Ask fill:#ffcdd2
+```
+
+**Think of it like this:**
+- **Quote** = "I'll sell my bike for $100" (an offer, no deal yet)
+- **Trade** = "Sold! Here's $100" (deal done, money exchanged)
+
+#### How It Works (The Flow)
+
+```mermaid
+flowchart TB
+    subgraph Config["⚙️ You Configure It"]
+        Settings["symbols: [AAPL, GOOGL]<br/>rate: 50 messages/second<br/>burst: enabled"]
+    end
+    
+    subgraph Generator["🎲 Synthetic Adapter"]
+        direction TB
+        Timer["⏱️ Timer ticks<br/>every 20ms"]
+        Pick["🎯 Pick random symbol"]
+        Decide{"Trade or<br/>Quote?"}
+        GenTrade["📈 Generate Trade<br/>price, qty, side"]
+        GenQuote["📊 Generate Quote<br/>bid, ask, sizes"]
+    end
+    
+    subgraph Output["📤 You Receive"]
+        Msg1["📬 AAPL Quote"]
+        Msg2["📬 GOOGL Quote"]
+        Msg3["📬 AAPL Trade"]
+        Msg4["📬 GOOGL Quote"]
+        More["...and so on..."]
+    end
+    
+    Config --> Timer
+    Timer --> Pick
+    Pick --> Decide
+    Decide -->|"5 out of 6"| GenQuote
+    Decide -->|"1 out of 6"| GenTrade
+    GenTrade --> Output
+    GenQuote --> Output
+    
+    style Config fill:#e3f2fd
+    style Generator fill:#fff8e1
+    style Output fill:#e8f5e9
+```
+
+#### Burst Mode: Simulating Market Chaos
+
+Real markets have calm periods and CRAZY periods (like when news breaks):
+
+```mermaid
+flowchart LR
+    subgraph Normal["😌 Normal Period"]
+        N1["10<br/>msg/s"]
+        N2["10<br/>msg/s"]
+        N3["10<br/>msg/s"]
+    end
+    
+    subgraph Burst["🔥 BURST! (News breaks)"]
+        B1["50<br/>msg/s"]
+        B2["50<br/>msg/s"]
+    end
+    
+    subgraph Normal2["😌 Back to Normal"]
+        N4["10<br/>msg/s"]
+        N5["10<br/>msg/s"]
+    end
+    
+    Normal --> Burst --> Normal2
+    
+    style Normal fill:#e8f5e9
+    style Burst fill:#ffcdd2
+    style Normal2 fill:#e8f5e9
+```
+
+#### Price Generation: The Random Walk
+
+Prices change realistically using a "random walk":
+
+```mermaid
+flowchart LR
+    P1["$185.00"] -->|"+0.02"| P2["$185.02"]
+    P2 -->|"-0.01"| P3["$185.01"]
+    P3 -->|"+0.03"| P4["$185.04"]
+    P4 -->|"-0.02"| P5["$185.02"]
+    P5 -->|"+0.01"| P6["$185.03"]
+    
+    style P1 fill:#e3f2fd
+    style P2 fill:#e8f5e9
+    style P3 fill:#ffebee
+    style P4 fill:#e8f5e9
+    style P5 fill:#ffebee
+    style P6 fill:#e8f5e9
+```
+
+Like a person taking random steps left or right — the price "wanders" but stays realistic!
+
+#### Key Concepts
+
+| Concept | Simple Explanation |
+|:-------:|-------------------|
+| 💹 **Trade** | A completed transaction (shares actually changed hands) |
+| 📊 **Quote** | The current best prices to buy/sell (no deal yet) |
+| 🟢 **Bid** | The highest price someone will pay (buyer's offer) |
+| 🔴 **Ask** | The lowest price someone will accept (seller's offer) |
+| 📏 **Spread** | Gap between bid and ask (the cost of trading) |
+| 🎲 **Random Walk** | Prices drift by small random amounts |
+| 🔥 **Burst Mode** | Temporarily increases message rate to simulate volatility |
+| ⚙️ **Configuration** | Settings that control the adapter's behavior |
+
+---
+
 <!-- 
 =======================================================================
   📝 TEMPLATE FOR FUTURE IMPLEMENTATIONS
@@ -313,10 +488,11 @@ flowchart TB
 flowchart LR
     subgraph Done["✅ Completed"]
         EP01a["🔌 Feed Adapter SPI"]
+        EP01b["🎭 Synthetic Adapter"]
     end
     
     subgraph InProgress["🔄 Up Next"]
-        EP01b["📡 More Adapters"]
+        EP01c["📡 Real Adapters"]
         EP02["⚙️ Normalizer"]
     end
     
@@ -339,7 +515,7 @@ flowchart LR
 
 | Epic | Feature | Status | Description |
 |:----:|---------|:------:|-------------|
-| EP01 | 🔌 Feed Adapters | 🟡 Partial | Connect to exchanges |
+| EP01 | 🔌 Feed Adapters | ✅ Done | Connect to exchanges |
 | EP02 | ⚙️ Normalizer | ⬜ Not started | Translate formats |
 | EP03 | 📚 Book Builder | ⬜ Not started | Order book state |
 | EP04 | 🚀 Message Backbone | ⬜ Not started | Kafka event streaming |
@@ -365,6 +541,7 @@ mindmap
       🎛️ Control Plane
       📬 Data Plane
       🌐 Gateway
+      🔌 SPI
     Connections
       💓 Heartbeat
       🔄 Transport
@@ -372,13 +549,24 @@ mindmap
     Data Structures
       📚 Order Book
       ⚙️ Normalizer
-      🔌 SPI
+    Market Data
+      💹 Trade
+      📊 Quote
+      🟢 Bid
+      🔴 Ask
+      ↔️ Spread
+    Simulation
+      🎲 Random Walk
+      💥 Burst Mode
 ```
 
 | Term | Icon | Simple Meaning |
 |------|:----:|---------------|
 | **Adapter** | 🔌 | A translator that connects to one data source |
+| **Ask** | 🔴 | The lowest price someone will sell at (offer) |
 | **Backbone** | 🚀 | The central highway for all messages (Kafka) |
+| **Bid** | 🟢 | The highest price someone will pay (demand) |
+| **Burst Mode** | 💥 | Temporary high-speed message generation (simulating market volatility) |
 | **Callback** | 📞 | "Hey, call this function when X happens" |
 | **Control Plane** | 🎛️ | The management/admin side |
 | **Data Plane** | 📬 | The actual data flow side |
@@ -387,7 +575,11 @@ mindmap
 | **Heartbeat** | 💓 | A "ping" to check if connection is alive |
 | **Normalizer** | ⚙️ | Translates different formats into one standard format |
 | **Order Book** | 📚 | List of all buy/sell orders for a stock |
+| **Quote** | 📊 | Current bid/ask prices and sizes for a symbol |
+| **Random Walk** | 🎲 | Price simulation where each step is random up/down |
 | **SPI** | 🔌 | Service Provider Interface = plugin system |
+| **Spread** | ↔️ | Gap between bid and ask price (profit margin for market makers) |
+| **Trade** | 💹 | A completed transaction (shares actually changed hands) |
 | **Transport** | 🔄 | HOW data is sent (TCP, WebSocket, etc.) |
 
 ---

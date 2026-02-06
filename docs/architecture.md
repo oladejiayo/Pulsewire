@@ -378,3 +378,193 @@ flowchart TD
     style RETRY fill:#69db7c,color:#fff
 ```
 
+---
+
+## 🎲 US01-02: Synthetic Exchange Feed Adapter Architecture
+
+### Design Decisions
+
+| ADR | Decision | Rationale |
+|:---:|----------|-----------|
+| **ADR-004** | **Immutable configuration object** | Thread-safe sharing, no mid-flight changes during operation |
+| **ADR-005** | **Builder pattern for configuration** | Clean API for many optional parameters with validation |
+| **ADR-006** | **Separate Trade/Quote records** | Type safety, clear semantics, easy serialization |
+| **ADR-007** | **JSON serialization for raw payload** | Human-readable for debugging, standard format |
+| **ADR-008** | **Scheduler-based burst pattern** | Predictable timing, easy to test, non-blocking |
+
+---
+
+### 📐 Class Diagram
+
+```mermaid
+classDiagram
+    direction TB
+    
+    class SyntheticFeedAdapter {
+        -config: SyntheticFeedConfig
+        -priceState: Map~String, SymbolPriceState~
+        -executor: ScheduledExecutorService
+        +SyntheticFeedAdapter(config)
+        +connect(handler: FeedEventHandler) void
+        +disconnect() void
+        +isConnected() boolean
+    }
+    
+    class SyntheticFeedConfig {
+        <<record>>
+        -symbols: List~String~
+        -messageRatePerSecond: int
+        -burstEnabled: boolean
+        -burstMultiplier: int
+        -burstDurationMs: long
+        -burstIntervalMs: long
+        -tradeToQuoteRatio: int
+        -enabled: boolean
+        +builder() Builder
+    }
+    
+    class SyntheticFeedConfigBuilder {
+        <<builder>>
+        +symbols(List~String~) Builder
+        +messageRatePerSecond(int) Builder
+        +burstEnabled(boolean) Builder
+        +build() SyntheticFeedConfig
+    }
+    
+    class SyntheticTrade {
+        <<record>>
+        -symbol: String
+        -price: double
+        -quantity: long
+        -timestamp: Instant
+        -tradeId: String
+        -side: TradeSide
+        +toJson() String
+        +toBytes() byte[]
+    }
+    
+    class SyntheticQuote {
+        <<record>>
+        -symbol: String
+        -bidPrice: double
+        -bidSize: long
+        -askPrice: double
+        -askSize: long
+        -timestamp: Instant
+        +toJson() String
+        +toBytes() byte[]
+    }
+    
+    class TradeSide {
+        <<enumeration>>
+        BUY
+        SELL
+    }
+    
+    class SymbolPriceState {
+        -symbol: String
+        -lastPrice: double
+        -random: Random
+        +nextPrice() double
+        +getBidAsk() BidAsk
+    }
+    
+    SyntheticFeedAdapter --> SyntheticFeedConfig : configured by
+    SyntheticFeedAdapter --> SymbolPriceState : maintains
+    SyntheticFeedAdapter ..> SyntheticTrade : generates
+    SyntheticFeedAdapter ..> SyntheticQuote : generates
+    SyntheticFeedConfig --> SyntheticFeedConfigBuilder : created by
+    SyntheticTrade --> TradeSide : uses
+```
+
+---
+
+### 🔄 Message Generation Flow
+
+```mermaid
+flowchart TB
+    subgraph Config["⚙️ Configuration"]
+        CFG["SyntheticFeedConfig<br/>symbols, rate, burst"]
+    end
+    
+    subgraph Scheduler["⏱️ Scheduler"]
+        TIMER["ScheduledExecutorService"]
+        BURST["Burst Detector"]
+    end
+    
+    subgraph Generator["🎲 Message Generator"]
+        DECIDE{"Trade or<br/>Quote?"}
+        TRADE["Generate<br/>SyntheticTrade"]
+        QUOTE["Generate<br/>SyntheticQuote"]
+        PRICE["SymbolPriceState<br/>(random walk)"]
+    end
+    
+    subgraph Output["📤 Output"]
+        JSON["Serialize to JSON"]
+        RAW["Wrap in RawFeedMessage"]
+        HANDLER["FeedEventHandler<br/>.onMessage()"]
+    end
+    
+    CFG --> TIMER
+    TIMER --> BURST
+    BURST -->|"rate decision"| DECIDE
+    DECIDE -->|"1 in 6"| TRADE
+    DECIDE -->|"5 in 6"| QUOTE
+    TRADE --> PRICE
+    QUOTE --> PRICE
+    PRICE --> JSON
+    JSON --> RAW
+    RAW --> HANDLER
+    
+    style Config fill:#e3f2fd
+    style Scheduler fill:#fff8e1
+    style Generator fill:#e8f5e9
+    style Output fill:#fce4ec
+```
+
+---
+
+### 📊 Burst Pattern State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Normal: start
+    
+    Normal --> Bursting: burstInterval elapsed
+    Bursting --> Normal: burstDuration elapsed
+    
+    Normal: Rate = baseRate
+    Normal: e.g., 10 msg/sec
+    
+    Bursting: Rate = baseRate × burstMultiplier
+    Bursting: e.g., 50 msg/sec
+    
+    note right of Bursting
+        Simulates market events:
+        • Market open
+        • News releases
+        • Earnings announcements
+    end note
+```
+
+---
+
+### 🔧 Configuration Schema
+
+```yaml
+synthetic:
+  enabled: true                    # AC1: Start/stop via config
+  symbols:                         # AC3: Symbol list
+    - AAPL
+    - GOOGL
+    - MSFT
+    - AMZN
+  messageRatePerSecond: 10         # AC3: Message rate
+  burst:                           # AC3: Burst patterns
+    enabled: true
+    multiplier: 5
+    durationMs: 1000
+    intervalMs: 10000
+  tradeToQuoteRatio: 5             # 1 trade per 5 quotes
+```
+
