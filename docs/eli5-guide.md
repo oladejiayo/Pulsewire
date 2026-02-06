@@ -15,51 +15,92 @@
 
 Imagine you want to know the price of Apple stock. That information comes from stock exchanges like NYSE. But here's the problem:
 
-```
-PROBLEM: Too Many Languages!
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  NYSE speaks "Format A" ──┐                                     │
-│  NASDAQ speaks "Format B" ─┼──▶ Your app only speaks ONE format │
-│  London speaks "Format C" ─┘                                    │
-│  Tokyo speaks "Format D" ──                                     │
-│                                                                 │
-│  😵 How do you understand them all?                             │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+#### ❌ The Problem: Too Many Languages!
 
-SOLUTION: PulseWire is the translator!
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  NYSE ──┐                      ┌──▶ Trading App                 │
-│  NASDAQ ─┼──▶ 🏤 PulseWire ────┼──▶ Mobile App                  │
-│  London ─┘   (translates &     └──▶ Analytics                   │
-│  Tokyo ──    delivers fast)                                     │
-│                                                                 │
-│  😊 Everyone gets clean, fast data!                             │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Exchanges["📊 Stock Exchanges"]
+        NYSE["🏛️ NYSE<br/>Format A"]
+        NASDAQ["🏛️ NASDAQ<br/>Format B"]
+        London["🏛️ London<br/>Format C"]
+        Tokyo["🏛️ Tokyo<br/>Format D"]
+    end
+    
+    subgraph Problem["😵 Your App"]
+        App["📱 Only speaks<br/>ONE format!"]
+    end
+    
+    NYSE -.->|"❓"| App
+    NASDAQ -.->|"❓"| App
+    London -.->|"❓"| App
+    Tokyo -.->|"❓"| App
+    
+    style App fill:#ffcccc,stroke:#ff0000
+    style Problem fill:#fff5f5
+```
+
+#### ✅ The Solution: PulseWire Translates Everything!
+
+```mermaid
+flowchart LR
+    subgraph Exchanges["📊 Stock Exchanges"]
+        NYSE["🏛️ NYSE"]
+        NASDAQ["🏛️ NASDAQ"]
+        London["🏛️ London"]
+        Tokyo["🏛️ Tokyo"]
+    end
+    
+    subgraph PW["🏤 PulseWire"]
+        Translate["🔄 Translates<br/>& Delivers Fast"]
+    end
+    
+    subgraph Apps["📱 Your Apps"]
+        Trading["💹 Trading App"]
+        Mobile["📲 Mobile App"]
+        Analytics["📊 Analytics"]
+    end
+    
+    NYSE --> Translate
+    NASDAQ --> Translate
+    London --> Translate
+    Tokyo --> Translate
+    
+    Translate --> Trading
+    Translate --> Mobile
+    Translate --> Analytics
+    
+    style PW fill:#e6ffe6,stroke:#00aa00
+    style Translate fill:#90EE90
 ```
 
 ---
 
 ## 🏗️ Project Layout
 
-```
-Pulsewire/
-├── 📁 pulsewire-core/          ← The toolbox (shared utilities)
-├── 📁 pulsewire-control-plane/ ← The manager's office (settings)
-├── 📁 pulsewire-data-plane/    ← The mail room (where data flows)
-├── 📁 pulsewire-frontend/      ← The customer window (web UI)
-└── 📁 docs/                    ← You are here!
+```mermaid
+flowchart TB
+    subgraph Project["📂 PulseWire Project"]
+        direction TB
+        Core["🧰 <b>pulsewire-core</b><br/><i>The Toolbox</i>"]
+        Control["🎛️ <b>pulsewire-control-plane</b><br/><i>Manager's Office</i>"]
+        Data["📬 <b>pulsewire-data-plane</b><br/><i>Mail Sorting Room</i>"]
+        Frontend["🖥️ <b>pulsewire-frontend</b><br/><i>Customer Window</i>"]
+        Docs["📚 <b>docs</b><br/><i>You are here!</i>"]
+    end
+    
+    style Core fill:#fff3cd
+    style Control fill:#cce5ff
+    style Data fill:#d4edda
+    style Frontend fill:#f8d7da
+    style Docs fill:#e2e3e5
 ```
 
 | Module | Real-World Analogy | What It Does |
-|--------|-------------------|--------------|
-| **core** | Toolbox | Shared code everyone uses |
-| **control-plane** | Manager's office | Configure feeds, users, settings |
-| **data-plane** | Mail sorting room | Receives, translates, delivers data |
-| **frontend** | Customer window | Web interface to see everything |
+|:------:|-------------------|--------------|
+| 🧰 **core** | Toolbox | Shared code everyone uses |
+| 🎛️ **control-plane** | Manager's office | Configure feeds, users, settings |
+| 📬 **data-plane** | Mail sorting room | Receives, translates, delivers data |
+| 🖥️ **frontend** | Customer window | Web interface to see everything |
 
 ---
 
@@ -99,70 +140,128 @@ Instead of writing separate code for each, we created a **standard interface** t
 
 #### How It Works (The Flow)
 
+```mermaid
+flowchart TB
+    subgraph Step1["<b>Step 1: CREATE</b> 🏗️"]
+        Create["adapter = new NyseAdapter()"]
+    end
+    
+    subgraph Step2["<b>Step 2: CONNECT</b> 🔌"]
+        Connect["adapter.connect(myHandler)<br/><br/><i>'Connect to NYSE and tell myHandler<br/>whenever something happens'</i>"]
+    end
+    
+    subgraph Step3["<b>Step 3: EVENTS FLOW</b> 📨"]
+        Events["📗 onConnected('NYSE')<br/>📬 onMessage('NYSE', data1)<br/>📬 onMessage('NYSE', data2)<br/>📬 onMessage('NYSE', data3)<br/><i>...hundreds per second...</i>"]
+    end
+    
+    subgraph Step4["<b>Step 4: DISCONNECT</b> 🔴"]
+        Disconnect["adapter.disconnect()<br/><br/>📕 onDisconnected('NYSE')"]
+    end
+    
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+    
+    style Step1 fill:#e3f2fd
+    style Step2 fill:#e8f5e9
+    style Step3 fill:#fff8e1
+    style Step4 fill:#ffebee
 ```
-Step 1: CREATE
-┌─────────────────────────────────────────┐
-│ You create an adapter for NYSE          │
-│ adapter = new NyseAdapter()             │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-Step 2: CONNECT
-┌─────────────────────────────────────────┐
-│ You tell it to connect and WHO to tell  │
-│ adapter.connect(myHandler)              │
-│                                         │
-│ "Connect to NYSE and tell myHandler     │
-│  whenever something happens"            │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-Step 3: EVENTS START FLOWING
-┌─────────────────────────────────────────┐
-│ The adapter starts calling your handler │
-│                                         │
-│ 📗 handler.onConnected("NYSE")          │
-│ 📬 handler.onMessage("NYSE", data1)     │
-│ 📬 handler.onMessage("NYSE", data2)     │
-│ 📬 handler.onMessage("NYSE", data3)     │
-│    ... hundreds per second ...          │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-Step 4: DISCONNECT
-┌─────────────────────────────────────────┐
-│ When you're done:                       │
-│ adapter.disconnect()                    │
-│                                         │
-│ 📕 handler.onDisconnected("NYSE", ...)  │
-└─────────────────────────────────────────┘
+
+#### Adapter Lifecycle State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Disconnected: Created
+    
+    Disconnected --> Connecting: connect()
+    Connecting --> Connected: ✅ onConnected
+    Connecting --> Disconnected: ❌ onError
+    
+    Connected --> Connected: 📬 onMessage
+    Connected --> Connected: 💓 sendHeartbeat
+    Connected --> Disconnected: disconnect()
+    Connected --> Disconnected: ❌ onError (fatal)
+    Connected --> Disconnected: ⏰ onHeartbeatTimeout
+    
+    Disconnected --> [*]: Done
+    
+    note right of Connected
+        🟢 Active State
+        • Receiving messages
+        • Sending heartbeats
+        • Monitoring health
+    end note
+    
+    note left of Disconnected
+        ⚪ Idle State
+        • Ready to connect
+        • Resources released
+    end note
 ```
 
 #### Why "SPI" (Service Provider Interface)?
 
 It's a fancy Java term for "plugin system":
 
+```mermaid
+flowchart LR
+    subgraph Bad["❌ <b>Without SPI</b>"]
+        direction TB
+        BadCore["PulseWire knows about<br/>NYSE, NASDAQ, Bloomberg..."]
+        BadAdd["To add Tokyo:<br/>😰 Edit core code<br/>😰 Rebuild everything<br/>😰 Risk breaking things"]
+    end
+    
+    subgraph Good["✅ <b>With SPI</b>"]
+        direction TB
+        GoodCore["PulseWire only knows<br/>THE RULES (interface)"]
+        GoodAdd["To add Tokyo:<br/>🎉 Just add a JAR file!<br/>🎉 Zero changes to core<br/>🎉 Java finds it auto-magic"]
+    end
+    
+    style Bad fill:#ffebee,stroke:#c62828
+    style Good fill:#e8f5e9,stroke:#2e7d32
+    style BadCore fill:#ffcdd2
+    style BadAdd fill:#ffcdd2
+    style GoodCore fill:#c8e6c9
+    style GoodAdd fill:#c8e6c9
 ```
-Without SPI (❌ Bad):                    With SPI (✅ Good):
-┌─────────────────────────────┐         ┌─────────────────────────────┐
-│ PulseWire code KNOWS about  │         │ PulseWire just knows the    │
-│ NYSE, NASDAQ, Bloomberg...  │         │ RULES (interface)           │
-│                             │         │                             │
-│ To add Tokyo exchange:      │         │ To add Tokyo exchange:      │
-│ - Edit PulseWire code 😰    │         │ - Just add a new JAR file!  │
-│ - Rebuild everything        │         │ - Zero changes to core 🎉   │
-│ - High risk of breaking     │         │ - Java finds it auto-magic  │
-└─────────────────────────────┘         └─────────────────────────────┘
+
+#### How Plugins Are Discovered
+
+```mermaid
+flowchart TB
+    subgraph Discovery["🔍 Java ServiceLoader Magic"]
+        direction LR
+        File["📄 META-INF/services/<br/>FeedAdapter"]
+        Loader["⚙️ ServiceLoader"]
+        Plugins["🔌 All Adapters"]
+    end
+    
+    subgraph Adapters["📦 Available Plugins"]
+        TCP["TcpAdapter"]
+        WS["WebSocketAdapter"]
+        Synth["SyntheticAdapter"]
+    end
+    
+    File -->|"lists classes"| Loader
+    Loader -->|"instantiates"| Plugins
+    Plugins --> TCP
+    Plugins --> WS
+    Plugins --> Synth
+    
+    style Discovery fill:#e3f2fd
+    style File fill:#bbdefb
+    style Loader fill:#90caf9
 ```
 
 #### Key Concepts
 
 | Concept | Simple Explanation |
-|---------|-------------------|
-| **Interface** | A job description. "You MUST have these abilities." |
-| **Implementation** | Someone who can do the job. |
-| **Callback** | "Call me back when something happens" |
-| **Heartbeat** | "Are you still there?" ping to detect dead connections |
+|:-------:|-------------------|
+| 📋 **Interface** | A job description. "You MUST have these abilities." |
+| 🔧 **Implementation** | Someone who can do the job. |
+| 📞 **Callback** | "Call me back when something happens" |
+| 💓 **Heartbeat** | "Are you still there?" ping to detect dead connections |
 
 ---
 
@@ -193,8 +292,8 @@ Without SPI (❌ Bad):                    With SPI (✅ Good):
 
 #### How It Works (The Flow)
 
-```
-[ASCII diagram showing the flow]
+```mermaid
+[Mermaid diagram showing the flow]
 ```
 
 #### Key Concepts
@@ -210,38 +309,86 @@ Without SPI (❌ Bad):                    With SPI (✅ Good):
 
 ## 🗺️ What's Coming Next
 
-These are the features we haven't built yet:
+```mermaid
+flowchart LR
+    subgraph Done["✅ Completed"]
+        EP01a["🔌 Feed Adapter SPI"]
+    end
+    
+    subgraph InProgress["🔄 Up Next"]
+        EP01b["📡 More Adapters"]
+        EP02["⚙️ Normalizer"]
+    end
+    
+    subgraph Future["⬜ Future"]
+        EP03["📚 Book Builder"]
+        EP04["🚀 Kafka Backbone"]
+        EP05["🌐 Gateways"]
+        EP06["🎛️ Control Plane"]
+        EP07["📊 Monitoring"]
+        EP08["🔒 Security"]
+        EP09["🔁 Replay"]
+    end
+    
+    Done --> InProgress --> Future
+    
+    style Done fill:#c8e6c9,stroke:#2e7d32
+    style InProgress fill:#fff9c4,stroke:#f9a825
+    style Future fill:#e3f2fd,stroke:#1976d2
+```
 
-| Epic | Feature | Status |
-|------|---------|--------|
-| EP01 | More feed adapters (TCP, WebSocket, etc.) | ⬜ Not started |
-| EP02 | Normalizer (translate all formats to one) | ⬜ Not started |
-| EP03 | Book Builder (order book state) | ⬜ Not started |
-| EP04 | Message backbone (Kafka) | ⬜ Not started |
-| EP05 | WebSocket Gateway (serve to apps) | ⬜ Not started |
-| EP06 | Control Plane (management APIs) | ⬜ Not started |
-| EP07 | Monitoring & Alerting | ⬜ Not started |
-| EP08 | Security & Auth | ⬜ Not started |
-| EP09 | Replay & Data Quality | ⬜ Not started |
+| Epic | Feature | Status | Description |
+|:----:|---------|:------:|-------------|
+| EP01 | 🔌 Feed Adapters | 🟡 Partial | Connect to exchanges |
+| EP02 | ⚙️ Normalizer | ⬜ Not started | Translate formats |
+| EP03 | 📚 Book Builder | ⬜ Not started | Order book state |
+| EP04 | 🚀 Message Backbone | ⬜ Not started | Kafka event streaming |
+| EP05 | 🌐 Gateways | ⬜ Not started | WebSocket/gRPC/TCP APIs |
+| EP06 | 🎛️ Control Plane | ⬜ Not started | Management APIs |
+| EP07 | 📊 Monitoring | ⬜ Not started | Metrics & Alerting |
+| EP08 | 🔒 Security | ⬜ Not started | Auth & Audit |
+| EP09 | 🔁 Replay | ⬜ Not started | Data Quality |
 
 ---
 
 ## 🔤 Glossary (Dictionary of Terms)
 
-| Term | Simple Meaning |
-|------|---------------|
-| **Adapter** | A translator that connects to one data source |
-| **Backbone** | The central highway for all messages (Kafka) |
-| **Callback** | "Hey, call this function when X happens" |
-| **Control Plane** | The management/admin side |
-| **Data Plane** | The actual data flow side |
-| **Feed** | A stream of market data from an exchange |
-| **Gateway** | The door where apps connect to get data |
-| **Heartbeat** | A "ping" to check if connection is alive |
-| **Normalizer** | Translates different formats into one standard format |
-| **Order Book** | List of all buy/sell orders for a stock |
-| **SPI** | Service Provider Interface = plugin system |
-| **Transport** | HOW data is sent (TCP, WebSocket, etc.) |
+```mermaid
+mindmap
+  root((📖 PulseWire<br/>Vocabulary))
+    Data Flow
+      🔌 Adapter
+      📨 Feed
+      📬 Message
+      🚀 Backbone
+    Architecture
+      🎛️ Control Plane
+      📬 Data Plane
+      🌐 Gateway
+    Connections
+      💓 Heartbeat
+      🔄 Transport
+      📞 Callback
+    Data Structures
+      📚 Order Book
+      ⚙️ Normalizer
+      🔌 SPI
+```
+
+| Term | Icon | Simple Meaning |
+|------|:----:|---------------|
+| **Adapter** | 🔌 | A translator that connects to one data source |
+| **Backbone** | 🚀 | The central highway for all messages (Kafka) |
+| **Callback** | 📞 | "Hey, call this function when X happens" |
+| **Control Plane** | 🎛️ | The management/admin side |
+| **Data Plane** | 📬 | The actual data flow side |
+| **Feed** | 📨 | A stream of market data from an exchange |
+| **Gateway** | 🌐 | The door where apps connect to get data |
+| **Heartbeat** | 💓 | A "ping" to check if connection is alive |
+| **Normalizer** | ⚙️ | Translates different formats into one standard format |
+| **Order Book** | 📚 | List of all buy/sell orders for a stock |
+| **SPI** | 🔌 | Service Provider Interface = plugin system |
+| **Transport** | 🔄 | HOW data is sent (TCP, WebSocket, etc.) |
 
 ---
 
